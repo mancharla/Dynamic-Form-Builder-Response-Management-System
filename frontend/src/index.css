@@ -1,0 +1,30 @@
+/* src/index.css  -- replace the ENTIRE file with this.
+   Also make src/App.css empty (or delete it and remove its import). */
+
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100%;
+}
+
+body {
+  display: block;            /* Vite default is "flex" + place-items:center */
+  min-width: 320px;
+  font-family: "DM Sans", sans-serif;
+  background-color: #f5f7fb;
+  color: #0f172a;
+}
+
+#root {
+  max-width: none;           /* Vite default is 1280px */
+  text-align: left;          /* Vite default is center */
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
