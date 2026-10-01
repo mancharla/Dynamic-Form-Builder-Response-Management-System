@@ -195,3 +195,69 @@ Public submissions use this shape:
 - Backend timestamps are stored as UTC and displayed in the browser's local timezone.
 - File fields currently submit file metadata only. Binary file storage is not configured.
 - Generated export files are written to the backend `exports/` directory.
+
+## Production Deployment
+
+A simple hosted setup is:
+
+- Backend: Render, Railway, or a VPS
+- Database: managed PostgreSQL such as Neon, Supabase, or Render PostgreSQL
+- Frontend: Vercel, Netlify, or the same VPS
+- Redis: managed Redis such as Upstash or Redis Cloud when asynchronous exports are used
+
+### Deploy the backend
+
+Create a Python web service with the backend directory as its root. Use:
+
+```text
+Build command: pip install -r Requirements.txt && alembic upgrade head
+Start command: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+```
+
+Set these backend environment variables in the hosting provider:
+
+```env
+DATABASE_URL=<managed-postgresql-connection-string>
+JWT_SECRET_KEY=<long-random-secret>
+JWT_ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=60
+REDIS_URL=<managed-redis-url>
+CORS_ORIGINS=https://your-frontend-domain.com
+DEBUG=false
+```
+
+After the first deployment, run the migration command if it was not included in the build command:
+
+```bash
+alembic upgrade head
+```
+
+The deployed API should respond successfully at `/health`. Copy the deployed API URL, including `/api/v1`, for the frontend configuration.
+
+### Deploy the frontend
+
+Create a Vercel project from the GitHub repository and configure:
+
+```text
+Framework preset: Vite
+Root directory: frontend
+Build command: npm run build
+Output directory: dist
+Install command: npm install
+```
+
+The repository includes `frontend/vercel.json` so React Router routes continue to work after a browser refresh.
+
+Set this frontend environment variable before building:
+
+```env
+VITE_API_URL=https://your-backend-domain.com/api/v1
+```
+
+Then add the final frontend URL to the backend `CORS_ORIGINS` value. Multiple origins can be separated by commas:
+
+```env
+CORS_ORIGINS=https://your-frontend-domain.com,http://localhost:5173
+```
+
+Do not commit `.env` files, JWT secrets, database credentials, or Redis credentials. The frontend uses the local API URL only when `VITE_API_URL` is not set.
