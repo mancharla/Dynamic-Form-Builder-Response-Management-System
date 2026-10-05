@@ -1,20 +1,20 @@
 import { useState } from "react";
 import {
   Alert,
-  Box,
   Button,
   CircularProgress,
-  Container,
-  Paper,
+  IconButton,
+  InputAdornment,
   Stack,
   TextField,
   Typography,
 } from "@mui/material";
-import { LockOutlined } from "@mui/icons-material";
+import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 
 import { useAuth } from "../../context";
+import AuthShell from "./AuthShell";
 
 interface LoginFormData {
   email: string;
@@ -27,6 +27,7 @@ const LoginPage = () => {
 
   const [serverError, setServerError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const {
     register,
@@ -42,9 +43,17 @@ const LoginPage = () => {
       await login(data);
       navigate("/dashboard", { replace: true });
     } catch (error: any) {
-      const message =
-        error.response?.data?.detail ||
-        "Unable to login. Please check your email and password.";
+      const detail = error.response?.data?.detail;
+      const message = Array.isArray(detail)
+        ? detail
+            .map((item: { msg?: string }) => item.msg)
+            .filter(Boolean)
+            .join(", ")
+        : typeof detail === "string"
+          ? detail
+          : error.message?.includes("VITE_API_URL")
+            ? error.message
+            : "Unable to sign in. Check your email and password, then try again.";
 
       setServerError(message);
     } finally {
@@ -53,133 +62,107 @@ const LoginPage = () => {
   };
 
   return (
-    <Container maxWidth="sm">
-      <Box
-        sx={{
-          minHeight: "100vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
+    <AuthShell
+      eyebrow="Your workspace"
+      title="Welcome back"
+      description="Sign in to continue building forms and reviewing responses."
+    >
+      <Stack
+        component="form"
+        spacing={2.25}
+        onSubmit={handleSubmit(onSubmit)}
+        noValidate
       >
-        <Paper
-          elevation={4}
+        {serverError && (
+          <Alert severity="error" onClose={() => setServerError("")}>
+            {serverError}
+          </Alert>
+        )}
+
+        <TextField
+          fullWidth
+          autoFocus
+          label="Email address"
+          type="email"
+          autoComplete="email"
+          {...register("email", {
+            required: "Email address is required",
+            pattern: {
+              value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+              message: "Enter a valid email address",
+            },
+            onChange: () => setServerError(""),
+          })}
+          error={Boolean(errors.email)}
+          helperText={errors.email?.message || " "}
+        />
+
+        <TextField
+          fullWidth
+          label="Password"
+          type={showPassword ? "text" : "password"}
+          autoComplete="current-password"
+          {...register("password", {
+            required: "Password is required",
+            minLength: {
+              value: 8,
+              message: "Password must be at least 8 characters",
+            },
+            onChange: () => setServerError(""),
+          })}
+          error={Boolean(errors.password)}
+          helperText={errors.password?.message || " "}
+          slotProps={{
+            input: {
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    onClick={() => setShowPassword((visible) => !visible)}
+                    onMouseDown={(event) => event.preventDefault()}
+                    edge="end"
+                    size="small"
+                  >
+                    {showPassword ? <VisibilityOff /> : <Visibility />}
+                  </IconButton>
+                </InputAdornment>
+              ),
+            },
+          }}
+        />
+
+        <Button
+          type="submit"
+          variant="contained"
+          size="large"
+          fullWidth
+          disabled={isSubmitting}
+          startIcon={isSubmitting ? <CircularProgress size={18} color="inherit" /> : undefined}
           sx={{
-            width: "100%",
-            p: { xs: 3, sm: 5 },
-            borderRadius: 3,
+            minHeight: 48,
+            mt: 0.5,
+            borderRadius: 1.5,
+            bgcolor: "#173d3a",
+            fontWeight: 700,
+            textTransform: "none",
+            "&:hover": { bgcolor: "#286158" },
           }}
         >
-          <Stack spacing={3}>
-            <Box sx={{ textAlign: "center" }}>
-              <Box
-                sx={{
-                  width: 56,
-                  height: 56,
-                  mx: "auto",
-                  mb: 2,
-                  borderRadius: "50%",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  backgroundColor: "primary.main",
-                  color: "white",
-                }}
-              >
-                <LockOutlined />
-              </Box>
+          {isSubmitting ? "Signing in..." : "Sign in"}
+        </Button>
 
-              <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                Welcome Back
-              </Typography>
-
-              <Typography
-                variant="body2"
-                color="text.secondary"
-                sx={{ mt: 1 }}
-              >
-                Sign in to your Dynamic Form Management System
-              </Typography>
-            </Box>
-
-            {serverError && (
-              <Alert severity="error">
-                {serverError}
-              </Alert>
-            )}
-
-            <Box
-              component="form"
-              onSubmit={handleSubmit(onSubmit)}
-              noValidate
-            >
-              <Stack spacing={2.5}>
-                <TextField
-                  fullWidth
-                  label="Email Address"
-                  type="email"
-                  autoComplete="email"
-                  {...register("email", {
-                    required: "Email address is required",
-                  })}
-                  error={Boolean(errors.email)}
-                  helperText={errors.email?.message}
-                />
-
-                <TextField
-                  fullWidth
-                  label="Password"
-                  type="password"
-                  autoComplete="current-password"
-                  {...register("password", {
-                    required: "Password is required",
-                    minLength: {
-                      value: 8,
-                      message: "Password must be at least 8 characters",
-                    },
-                  })}
-                  error={Boolean(errors.password)}
-                  helperText={errors.password?.message}
-                />
-
-                <Button
-                  type="submit"
-                  variant="contained"
-                  size="large"
-                  fullWidth
-                  disabled={isSubmitting}
-                  sx={{
-                    py: 1.4,
-                    fontWeight: 600,
-                  }}
-                >
-                  {isSubmitting ? (
-                    <CircularProgress size={24} color="inherit" />
-                  ) : (
-                    "Sign In"
-                  )}
-                </Button>
-
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  sx={{ textAlign: "center" }}
-                >
-                  Don't have an account?{" "}
-                  <Button
-                    variant="text"
-                    onClick={() => navigate("/register")}
-                    sx={{ textTransform: "none" }}
-                  >
-                    Create Account
-                  </Button>
-                </Typography>
-              </Stack>
-            </Box>
-          </Stack>
-        </Paper>
-      </Box>
-    </Container>
+        <Typography sx={{ pt: 1, textAlign: "center", color: "#68756f", fontSize: 13.5 }}>
+          New to Dynamic Forms?{" "}
+          <Button
+            variant="text"
+            onClick={() => navigate("/register")}
+            sx={{ minWidth: 0, p: 0.5, color: "#17665c", fontWeight: 700, textTransform: "none" }}
+          >
+            Create an account
+          </Button>
+        </Typography>
+      </Stack>
+    </AuthShell>
   );
 };
 

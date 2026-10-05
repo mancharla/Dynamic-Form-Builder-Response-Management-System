@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 from app.core.dependencies import get_current_user
 
@@ -35,8 +35,12 @@ def register(
     data: RegisterRequest,
     db: Session = Depends(get_db),
 ):
+    normalized_email = str(data.email).strip().lower()
+
     existing_user = db.scalar(
-        select(User).where(User.email == data.email)
+        select(User).where(
+            func.lower(User.email) == normalized_email
+        )
     )
 
     if existing_user:
@@ -58,7 +62,7 @@ def register(
     new_user = User(
         role_id=user_role.id,
         name=data.name,
-        email=data.email,
+        email=normalized_email,
         password_hash=hash_password(data.password),
         is_active=True,
     )
@@ -84,8 +88,12 @@ def login(
     data: LoginRequest,
     db: Session = Depends(get_db),
 ):
+    normalized_email = str(data.email).strip().lower()
+
     user = db.scalar(
-        select(User).where(User.email == data.email)
+        select(User).where(
+            func.lower(User.email) == normalized_email
+        )
     )
 
     if not user:

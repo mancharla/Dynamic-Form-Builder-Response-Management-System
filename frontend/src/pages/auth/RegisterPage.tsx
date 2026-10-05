@@ -5,19 +5,21 @@ import {
   Box,
   Button,
   CircularProgress,
-  Container,
-  Paper,
+  IconButton,
+  InputAdornment,
+  LinearProgress,
   Stack,
   TextField,
   Typography,
 } from "@mui/material";
 
-import { PersonAddOutlined } from "@mui/icons-material";
+import { Visibility, VisibilityOff } from "@mui/icons-material";
 
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 
 import { registerUser } from "../../api";
+import AuthShell from "./AuthShell";
 
 interface RegisterFormData {
   name: string;
@@ -32,6 +34,8 @@ const RegisterPage = () => {
   const [serverError, setServerError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const {
     register,
@@ -41,6 +45,16 @@ const RegisterPage = () => {
   } = useForm<RegisterFormData>();
 
   const password = watch("password");
+  const confirmPassword = watch("confirmPassword");
+  const passwordChecks = [
+    (password?.length ?? 0) >= 8,
+    /[a-z]/.test(password ?? "") && /[A-Z]/.test(password ?? ""),
+    /\d/.test(password ?? ""),
+    /[^A-Za-z0-9]/.test(password ?? ""),
+  ];
+  const passwordStrength = passwordChecks.filter(Boolean).length;
+  const strengthLabel = ["Add a password", "Needs work", "Fair", "Good", "Strong"];
+  const strengthColor = ["#dbe3dd", "#bc694f", "#c98952", "#4c8d6d", "#17665c"];
 
   const onSubmit = async (data: RegisterFormData) => {
     setServerError("");
@@ -82,217 +96,155 @@ const RegisterPage = () => {
   };
 
   return (
-    <Container maxWidth="sm">
-      <Box
-        sx={{
-          minHeight: "100vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          py: 4,
-        }}
+    <AuthShell
+      eyebrow="Get started"
+      title="Create your account"
+      description="Set up your workspace access and start managing forms and responses."
+    >
+      <Stack
+        component="form"
+        spacing={1.8}
+        onSubmit={handleSubmit(onSubmit)}
+        noValidate
       >
-        <Paper
-          elevation={4}
-          sx={{
-            width: "100%",
-            p: {
-              xs: 3,
-              sm: 5,
+        {serverError && (
+          <Alert severity="error" onClose={() => setServerError("")}>
+            {serverError}
+          </Alert>
+        )}
+        {successMessage && (
+          <Alert severity="success">{successMessage}</Alert>
+        )}
+
+        <TextField
+          fullWidth
+          autoFocus
+          label="Full name"
+          autoComplete="name"
+          {...register("name", {
+            required: "Full name is required",
+            minLength: { value: 2, message: "Name must be at least 2 characters" },
+            maxLength: { value: 150, message: "Name cannot exceed 150 characters" },
+          })}
+          error={Boolean(errors.name)}
+          helperText={errors.name?.message || " "}
+        />
+
+        <TextField
+          fullWidth
+          label="Email address"
+          type="email"
+          autoComplete="email"
+          {...register("email", {
+            required: "Email address is required",
+            pattern: {
+              value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+              message: "Enter a valid email address",
             },
-            borderRadius: 3,
-          }}
-        >
-          <Stack spacing={3}>
-            {/* Header */}
-            <Box sx={{ textAlign: "center" }}>
-              <Box
-                sx={{
-                  width: 56,
-                  height: 56,
-                  mx: "auto",
-                  mb: 2,
-                  borderRadius: "50%",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  backgroundColor: "primary.main",
-                  color: "white",
-                }}
-              >
-                <PersonAddOutlined />
-              </Box>
+          })}
+          error={Boolean(errors.email)}
+          helperText={errors.email?.message || " "}
+        />
 
-              <Typography
-                variant="h4"
-                sx={{ fontWeight: 700 }}
-              >
-                Create Account
-              </Typography>
-
-              <Typography
-                variant="body2"
-                color="text.secondary"
-                sx={{
-                  mt: 1,
-                }}
-              >
-                Create your account to access the
-                Dynamic Form Management System
+        <Box>
+          <TextField
+            fullWidth
+            label="Password"
+            type={showPassword ? "text" : "password"}
+            autoComplete="new-password"
+            {...register("password", {
+              required: "Password is required",
+              minLength: { value: 8, message: "Use at least 8 characters" },
+              maxLength: { value: 128, message: "Password cannot exceed 128 characters" },
+            })}
+            error={Boolean(errors.password)}
+            helperText={errors.password?.message || "Use 8+ characters and combine letter types, numbers, or symbols."}
+            slotProps={{
+              input: {
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      onClick={() => setShowPassword((visible) => !visible)}
+                      onMouseDown={(event) => event.preventDefault()}
+                      edge="end"
+                      size="small"
+                    >
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              },
+            }}
+          />
+          {password && (
+            <Box sx={{ mt: 0.2, px: 0.2 }}>
+              <LinearProgress
+                variant="determinate"
+                value={(passwordStrength / 4) * 100}
+                sx={{ height: 4, borderRadius: 2, bgcolor: "#e8ede8", "& .MuiLinearProgress-bar": { bgcolor: strengthColor[passwordStrength], transition: "transform 220ms ease, background-color 220ms ease" } }}
+              />
+              <Typography sx={{ mt: 0.6, color: strengthColor[passwordStrength], fontSize: 11.5, fontWeight: 700 }}>
+                Password strength: {strengthLabel[passwordStrength]}
               </Typography>
             </Box>
+          )}
+        </Box>
 
-            {/* Server Error */}
-            {serverError && (
-              <Alert severity="error">
-                {serverError}
-              </Alert>
-            )}
-
-            {/* Success */}
-            {successMessage && (
-              <Alert severity="success">
-                {successMessage}
-              </Alert>
-            )}
-
-            {/* Register Form */}
-            <Box
-              component="form"
-              onSubmit={handleSubmit(onSubmit)}
-              noValidate
-            >
-              <Stack spacing={2.5}>
-                {/* Name */}
-                <TextField
-                  fullWidth
-                  label="Full Name"
-                  autoComplete="name"
-                  {...register("name", {
-                    required: "Full name is required",
-                    minLength: {
-                      value: 2,
-                      message:
-                        "Name must be at least 2 characters",
-                    },
-                    maxLength: {
-                      value: 150,
-                      message:
-                        "Name cannot exceed 150 characters",
-                    },
-                  })}
-                  error={Boolean(errors.name)}
-                  helperText={errors.name?.message}
-                />
-
-                {/* Email */}
-                <TextField
-                  fullWidth
-                  label="Email Address"
-                  type="email"
-                  autoComplete="email"
-                  {...register("email", {
-                    required: "Email address is required",
-                    pattern: {
-                      value:
-                        /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-                      message:
-                        "Please enter a valid email address",
-                    },
-                  })}
-                  error={Boolean(errors.email)}
-                  helperText={errors.email?.message}
-                />
-
-                {/* Password */}
-                <TextField
-                  fullWidth
-                  label="Password"
-                  type="password"
-                  autoComplete="new-password"
-                  {...register("password", {
-                    required: "Password is required",
-                    minLength: {
-                      value: 8,
-                      message:
-                        "Password must be at least 8 characters",
-                    },
-                    maxLength: {
-                      value: 128,
-                      message:
-                        "Password cannot exceed 128 characters",
-                    },
-                  })}
-                  error={Boolean(errors.password)}
-                  helperText={errors.password?.message}
-                />
-
-                {/* Confirm Password */}
-                <TextField
-                  fullWidth
-                  label="Confirm Password"
-                  type="password"
-                  autoComplete="new-password"
-                  {...register("confirmPassword", {
-                    required:
-                      "Please confirm your password",
-                    validate: (value) =>
-                      value === password ||
-                      "Passwords do not match",
-                  })}
-                  error={Boolean(errors.confirmPassword)}
-                  helperText={
-                    errors.confirmPassword?.message
-                  }
-                />
-
-                {/* Submit */}
-                <Button
-                  type="submit"
-                  variant="contained"
-                  size="large"
-                  fullWidth
-                  disabled={isSubmitting}
-                  sx={{
-                    py: 1.4,
-                    fontWeight: 600,
-                  }}
-                >
-                  {isSubmitting ? (
-                    <CircularProgress
-                      size={24}
-                      color="inherit"
-                    />
-                  ) : (
-                    "Create Account"
-                  )}
-                </Button>
-
-                {/* Login */}
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  sx={{ textAlign: "center" }}
-                >
-                  Already have an account?{" "}
-                  <Button
-                    variant="text"
-                    onClick={() =>
-                      navigate("/login")
-                    }
-                    sx={{
-                      textTransform: "none",
-                    }}
+        <TextField
+          fullWidth
+          label="Confirm password"
+          type={showConfirmPassword ? "text" : "password"}
+          autoComplete="new-password"
+          {...register("confirmPassword", {
+            required: "Please confirm your password",
+            validate: (value) => value === password || "Passwords do not match",
+          })}
+          error={Boolean(errors.confirmPassword)}
+          helperText={errors.confirmPassword?.message || (confirmPassword && confirmPassword === password ? "Passwords match" : " ")}
+          slotProps={{
+            input: {
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    aria-label={showConfirmPassword ? "Hide confirmation" : "Show confirmation"}
+                    onClick={() => setShowConfirmPassword((visible) => !visible)}
+                    onMouseDown={(event) => event.preventDefault()}
+                    edge="end"
+                    size="small"
                   >
-                    Sign In
-                  </Button>
-                </Typography>
-              </Stack>
-            </Box>
-          </Stack>
-        </Paper>
-      </Box>
-    </Container>
+                    {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
+                  </IconButton>
+                </InputAdornment>
+              ),
+            },
+          }}
+        />
+
+        <Button
+          type="submit"
+          variant="contained"
+          size="large"
+          fullWidth
+          disabled={isSubmitting || Boolean(successMessage)}
+          startIcon={isSubmitting ? <CircularProgress size={18} color="inherit" /> : undefined}
+          sx={{ minHeight: 48, mt: 0.5, borderRadius: 1.5, bgcolor: "#173d3a", fontWeight: 700, textTransform: "none", "&:hover": { bgcolor: "#286158" } }}
+        >
+          {isSubmitting ? "Creating account..." : "Create account"}
+        </Button>
+
+        <Typography sx={{ pt: 0.7, textAlign: "center", color: "#68756f", fontSize: 13.5 }}>
+          Already have an account?{" "}
+          <Button
+            variant="text"
+            onClick={() => navigate("/login")}
+            sx={{ minWidth: 0, p: 0.5, color: "#17665c", fontWeight: 700, textTransform: "none" }}
+          >
+            Sign in
+          </Button>
+        </Typography>
+      </Stack>
+    </AuthShell>
   );
 };
 

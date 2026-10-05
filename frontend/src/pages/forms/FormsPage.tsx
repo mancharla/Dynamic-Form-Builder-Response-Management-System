@@ -53,7 +53,7 @@ import {
   updateForm,
   type Form,
 } from "../../api";
-import { parseApiDate } from "../../utils/date";
+import { parseApiDate } from "../../utils/date.ts";
 
 interface FormData {
   title: string;

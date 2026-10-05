@@ -39,7 +39,10 @@ export const registerUser = async (
 export const loginUser = async (
   data: LoginRequest,
 ): Promise<TokenResponse> => {
-  const response = await api.post<TokenResponse>("/auth/login", data);
+  const response = await api.post<TokenResponse>("/auth/login", {
+    ...data,
+    email: data.email.trim().toLowerCase(),
+  });
   return response.data;
 };
 

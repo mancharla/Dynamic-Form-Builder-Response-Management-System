@@ -1,9 +1,18 @@
 import axios from "axios";
 
+const localApiUrl = `http://${window.location.hostname}:8000/api/v1`;
+const configuredApiUrl = import.meta.env.VITE_API_URL?.trim().replace(/\/+$/, "");
+const isPlaceholderApiUrl = configuredApiUrl?.includes("your-backend-domain");
+const normalizedApiUrl = configuredApiUrl
+  ? /\/api\/v1$/i.test(configuredApiUrl)
+    ? configuredApiUrl
+    : `${configuredApiUrl}/api/v1`
+  : undefined;
+
 const api = axios.create({
   baseURL:
-    import.meta.env.VITE_API_URL ||
-    "http://127.0.0.1:8000/api/v1",
+    normalizedApiUrl ||
+    (import.meta.env.DEV ? localApiUrl : undefined),
   headers: {
     "Content-Type": "application/json",
   },
@@ -11,6 +20,14 @@ const api = axios.create({
 
 api.interceptors.request.use(
   (config) => {
+    if (!import.meta.env.DEV && (!normalizedApiUrl || isPlaceholderApiUrl)) {
+      return Promise.reject(
+        new Error(
+          "Backend URL is not configured. Set VITE_API_URL in Vercel to your deployed API URL.",
+        ),
+      );
+    }
+
     const token = localStorage.getItem("access_token");
 
     if (token) {
